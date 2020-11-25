@@ -1,5 +1,4 @@
 import sys
-import math
 import pygame
 import random
 from pygame.locals import *
@@ -33,6 +32,12 @@ background_menu = pygame.image.load('images/background_menu.png')
 # Background Game
 background = pygame.image.load('images/background_game.jpeg')
 
+# Background GameOver
+background_gameover = pygame.image.load('images/background_gameover.jpg')
+
+# Background Success
+background_success = pygame.image.load('images/background_success.jpg')
+
 # Menu
 start_button = pygame.image.load('images/button_start.png').convert_alpha()
 start_button_pos = (size[0]/2.0 - start_button.get_width()/2.0, size[1]*0.7 - start_button.get_height()/2.0)
@@ -49,6 +54,12 @@ sound = "sounds/game_song.ogg"
 pygame.mixer.init(44000, -16, 1, 1024)
 pygame.mixer.music.load(sound)
 pygame.mixer.music.play(-1)
+
+gameover_sound = "sounds/game_over.wav"
+
+# good_sound = "sounds/good_collision.wav"
+
+success_game_sound = "sounds/success_game.wav"
 
 # Player
 player = [
@@ -83,30 +94,36 @@ sidewalk_pos = sidewalk_left_edge, size[1]-sidewalk_height
 sidewalk_color = GREY
 
 # Enemies
-enemyImg = pygame.image.load('images/ghost.png')
+enemyImg = pygame.image.load('images/npc.png')
 enemyX = 0
 enemyY = 0
-enemy_speed = 3
+enemy_speed = 3.5
 
 # Mask
 maskImg = pygame.image.load('images/mask.png')
 maskX = 0
 maskY = 0
-mask_speed = 3
+mask_speed = 3.5
 
 # Hand Sanitizer
 hand_sanitizerImg = pygame.image.load('images/hand_sanitizer.png')
 hand_sanitizerX = 0
 hand_sanitizerY = 0
-hand_sanitizer_speed = 3
+hand_sanitizer_speed = 3.5
 
 # Score
-score_value = 100
+score_value = 0
 scoreX = 10
-scoreY = 10
+scoreY = 50
+
+# Lives
+lives_value = 3
+livesX = 10
+livesY = 10
 
 # Font
 font = pygame.font.Font('freesansbold.ttf', 32)
+over_font = pygame.font.Font('freesansbold.ttf', 64)
 
 # Variável para contagem de tempo, utilizado para controlar a velocidade de quadros (de atualizações da tela)
 clock = pygame.time.Clock()
@@ -127,8 +144,47 @@ def validate_click(mouse_pos, target_surface, target_pos):
 
 
 def show_score(x, y):
-    score = font.render("Score : " + str(score_value), True, WHITE)
+    score = font.render("Score : " + str(score_value), True, YELLOW)
     screen.blit(score, (x, y))
+
+
+def show_lives(x, y):
+    lives = font.render("Lives : " + str(lives_value), True, YELLOW)
+    screen.blit(lives, (x, y))
+
+
+def game_over():
+    over_text = over_font.render("GAME OVER", True, WHITE)
+    pygame.mixer.music.stop()
+    pygame.mixer.music.load(gameover_sound)
+    pygame.mixer.music.play(-1, 0)
+    while True:
+        for event in pygame.event.get():
+
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+        screen.blit(background_gameover, (0, 0))
+        screen.blit(over_text, (200, 270))
+        pygame.display.update()
+
+
+def success_game():
+    score = font.render("Score : " + str(score_value), True, BLACK)
+    pygame.mixer.music.stop()
+    pygame.mixer.music.load(success_game_sound)
+    pygame.mixer.music.play(-1, 0)
+    while True:
+        for event in pygame.event.get():
+
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+        screen.blit(background_success, (0, 0))
+        screen.blit(score, (300, 500))
+        pygame.display.update()
 
 
 # --------------------------------------------------------
@@ -229,8 +285,7 @@ while running:
 
     # finalizando o jogo
     if temporizador == 0:
-        # desenhando um frame ocupando e escondendo toda a tela do usuário
-        break
+        success_game()
 
     # Update Player Position
     player_pos = (player_pos[0] + player_mov, player_pos[1])
@@ -262,7 +317,7 @@ while running:
     if (player_pos[1] + 20 >= enemyY - 10 and player_pos[1] - 20 <= enemyY + 10) and \
             (player_pos[0] + 20 >= enemyX - 10 and player_pos[0] - 20 <= enemyX + 20):
         create_enemy = True
-        score_value -= 1
+        lives_value -= 1
 
     # Set Initial Position Mask
     if create_mask:
@@ -286,6 +341,7 @@ while running:
         create_mask = True
         score_value += 1
 
+
     # Set Initial Position Hand Sanitizer
     if create_hand_sanitizer:
         hand_sanitizerX = random.randint(166, 622)
@@ -308,16 +364,18 @@ while running:
         create_hand_sanitizer = True
         score_value += 1
 
+    if not lives_value:
+        game_over()
+
     # rendrizando as fontes do cronometro na tela do usuario
     timer1 = font.render('Tempo ' + str(temporizador), True, (YELLOW))
     screen.blit(timer1, (330, 10))
-
-    player_index = (player_index + 1) % 2
 
     # Show in Screen
     screen.blit(sound_button[sound_button_index], sound_button_pos)
     screen.blit(player[player_index], player_pos)
     show_score(scoreX, scoreY)
+    show_lives(livesX, livesY)
 
     # Limita a taxa de quadros (framerate) a 60 quadros por segundo (60fps)
     clock.tick(60)
